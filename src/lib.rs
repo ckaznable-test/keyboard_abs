@@ -1,21 +1,11 @@
-use std::{sync::{Arc, Weak}, collections::HashMap};
+use std::sync::{Arc, Weak};
+
+use bevy::utils::HashMap;
 
 mod keyboard;
 
-pub trait Controller<T> {
+pub trait ControllerBuilder<T> {
     fn get_controller_map(&self) -> &HashMap<T, ControllerConnectedNode<T>>;
-}
-
-#[derive(Default)]
-pub enum ControllerNeighbors<T> {
-    #[default]
-    Empty,
-    Neighbors(T),
-    Neighbors2(T, T),
-    Neighbors3(T, T, T),
-    Neighbors4(T, T, T, T),
-    Neighbors5(T, T, T, T, T),
-    Neighbors6(T, T, T, T, T, T),
 }
 
 #[derive(Clone)]
@@ -35,11 +25,11 @@ impl<T> ControllerNode<T> {
 
 pub struct ControllerConnectedNode<T> {
     pub node: Arc<ControllerNode<T>>,
-    pub neighbors: ControllerNeighbors<ControllerLink<T>>,
+    pub neighbors: Vec<ControllerLink<T>>,
 }
 
 impl<T> ControllerConnectedNode<T> {
-    pub fn new(node: Arc<ControllerNode<T>>, neighbors: ControllerNeighbors<ControllerLink<T>>) -> Self {
+    pub fn new(node: Arc<ControllerNode<T>>, neighbors: Vec<ControllerLink<T>>) -> Self {
         Self {
             node,
             neighbors,
