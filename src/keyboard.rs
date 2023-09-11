@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use bevy::{prelude::KeyCode, utils::HashMap};
 
 use crate::{ControllerConnectedNode, ControllerBuilder, ControllerNode, Controller};
@@ -6,11 +8,7 @@ pub struct Keyboard {
     pub controller: Controller<KeyCode>,
 }
 
-pub struct KeyboardBuilder {
-    map: HashMap<KeyCode, ControllerConnectedNode<KeyCode>>,
-}
-
-impl KeyboardBuilder {
+impl Keyboard {
     pub fn new() -> Keyboard {
         Keyboard {
             controller: KeyboardBuilder::default().build(),
@@ -18,9 +16,18 @@ impl KeyboardBuilder {
     }
 }
 
+pub struct KeyboardBuilder {
+    map: HashMap<KeyCode, ControllerConnectedNode<KeyCode>>,
+    set: Vec<Arc<ControllerNode<KeyCode>>>
+}
+
 impl ControllerBuilder<KeyCode> for KeyboardBuilder {
     fn get_controller_map(&self) -> &HashMap<KeyCode, ControllerConnectedNode<KeyCode>> {
         &self.map
+    }
+
+    fn get_key_set(&self) -> &[Arc<ControllerNode<KeyCode>>] {
+        &self.set
     }
 }
 
@@ -242,6 +249,13 @@ impl Default for KeyboardBuilder {
             vec![j.clone().into(), k.clone().into(), n.clone().into()]
         ));
 
-        Self { map }
+        Self {
+            map,
+            set: vec![
+                q, w, e, r, t, y, u, i, o, p,
+                a, s, d, f, g, h, j, k, l,
+                z, x, c, v, b, n, m
+            ]
+        }
     }
 }

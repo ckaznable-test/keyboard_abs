@@ -2,12 +2,13 @@ use std::{sync::{Arc, Weak}, hash::Hash};
 
 use bevy::utils::HashMap;
 
-mod keyboard;
+pub mod keyboard;
 
 pub type ControllerNeighbors<T> = Vec<ControllerLink<T>>;
 
 pub trait ControllerBuilder<T: Hash + Eq + Clone>: Sized {
     fn get_controller_map(&self) -> &HashMap<T, ControllerConnectedNode<T>>;
+    fn get_key_set(&self) -> &[Arc<ControllerNode<T>>];
 
     fn get_neighbors(&self, key: T) -> Option<&ControllerNeighbors<T>> {
         let map = self.get_controller_map();
@@ -40,6 +41,13 @@ pub trait ControllerBuilder<T: Hash + Eq + Clone>: Sized {
         Some(neighbors)
     }
 
+    fn get_far_neighbors(&self, key: T) -> Option<ControllerNeighbors<T>> {
+        let n = self.get_neighbors_distance_two(key)?;
+        let set = self.get_key_set();
+
+        Some(n.into_iter().filter(|n| !set.contains(&n.0.upgrade().unwrap())).collect())
+    }
+
     fn get_mirrors_key(&self) -> Option<&ControllerNode<T>> {
         None
     }
@@ -48,6 +56,7 @@ pub trait ControllerBuilder<T: Hash + Eq + Clone>: Sized {
         let map = self.get_controller_map();
         let mut neighbors_map = HashMap::<T, ControllerNeighbors<T>>::new();
         let mut neighbors_distance_two_map = HashMap::<T, ControllerNeighbors<T>>::new();
+        let mut neighbors_far_map = HashMap::<T, ControllerNeighbors<T>>::new();
 
         map.keys().for_each(|k| {
             if let Some(n) = self.get_neighbors(k.clone()) {
@@ -57,11 +66,16 @@ pub trait ControllerBuilder<T: Hash + Eq + Clone>: Sized {
             if let Some(n) = self.get_neighbors_distance_two(k.clone()) {
                 neighbors_distance_two_map.insert(k.clone(), n.clone());
             }
+
+            if let Some(n) = self.get_far_neighbors(k.clone()) {
+                neighbors_far_map.insert(k.clone(), n.clone());
+            }
         });
 
         Controller {
             neighbors_map,
             neighbors_distance_two_map,
+            neighbors_far_map,
         }
     }
 }
@@ -69,6 +83,7 @@ pub trait ControllerBuilder<T: Hash + Eq + Clone>: Sized {
 pub struct Controller<T> {
     pub neighbors_map: HashMap<T, ControllerNeighbors<T>>,
     pub neighbors_distance_two_map: HashMap<T, ControllerNeighbors<T>>,
+    pub neighbors_far_map: HashMap<T, ControllerNeighbors<T>>,
 }
 
 #[derive(Clone)]
@@ -85,7 +100,7 @@ impl<T> PartialEq for ControllerLink<T> {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct ControllerNode<T>(T);
 impl<T> ControllerNode<T> {
     pub fn new(node: T) -> Arc<Self> {
