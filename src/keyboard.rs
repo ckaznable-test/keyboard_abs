@@ -1,9 +1,21 @@
 use bevy::{prelude::KeyCode, utils::HashMap};
 
-use crate::{ControllerConnectedNode, ControllerBuilder, ControllerNode};
+use crate::{ControllerConnectedNode, ControllerBuilder, ControllerNode, Controller};
+
+pub struct Keyboard {
+    pub controller: Controller<KeyCode>,
+}
 
 pub struct KeyboardBuilder {
     map: HashMap<KeyCode, ControllerConnectedNode<KeyCode>>,
+}
+
+impl KeyboardBuilder {
+    pub fn new() -> Keyboard {
+        Keyboard {
+            controller: KeyboardBuilder::default().build(),
+        }
+    }
 }
 
 impl ControllerBuilder<KeyCode> for KeyboardBuilder {
