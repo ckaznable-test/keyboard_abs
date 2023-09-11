@@ -48,10 +48,6 @@ pub trait ControllerBuilder<T: Hash + Eq + Clone>: Sized {
         Some(n.into_iter().filter(|n| !set.contains(&n.0.upgrade().unwrap())).collect())
     }
 
-    fn get_mirrors_key(&self) -> Option<&ControllerNode<T>> {
-        None
-    }
-
     fn build(self) -> Controller<T> {
         let map = self.get_controller_map();
         let mut neighbors_map = HashMap::<T, ControllerNeighbors<T>>::new();
@@ -81,9 +77,23 @@ pub trait ControllerBuilder<T: Hash + Eq + Clone>: Sized {
 }
 
 pub struct Controller<T> {
-    pub neighbors_map: HashMap<T, ControllerNeighbors<T>>,
-    pub neighbors_distance_two_map: HashMap<T, ControllerNeighbors<T>>,
-    pub neighbors_far_map: HashMap<T, ControllerNeighbors<T>>,
+    neighbors_map: HashMap<T, ControllerNeighbors<T>>,
+    neighbors_distance_two_map: HashMap<T, ControllerNeighbors<T>>,
+    neighbors_far_map: HashMap<T, ControllerNeighbors<T>>,
+}
+
+impl<T: Eq + Hash> Controller<T> {
+    pub fn key_neighbors(&self, key: T) -> Option<&ControllerNeighbors<T>> {
+        self.neighbors_map.get(&key)
+    }
+
+    pub fn key_neighbors_distance_two(&self, key: T) -> Option<&ControllerNeighbors<T>> {
+        self.neighbors_distance_two_map.get(&key)
+    }
+
+    pub fn random_far_key(&self, key: T) -> Option<&ControllerLink<T>> {
+        self.neighbors_far_map.get(&key).unwrap().first()
+    }
 }
 
 #[derive(Clone)]
