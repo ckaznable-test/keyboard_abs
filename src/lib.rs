@@ -43,7 +43,8 @@ pub trait ControllerBuilder<T: Hash + Eq + Clone>: Sized {
     }
 
     fn get_far_neighbors(&self, key: T) -> Option<ControllerNeighbors<T>> {
-        let set = self.get_key_set()
+        let set = self
+            .get_key_set()
             .iter()
             .collect::<Vec<_>>();
 
