@@ -8,9 +8,9 @@ pub struct Keyboard {
     pub controller: Controller<KeyCode>,
 }
 
-impl Keyboard {
-    pub fn new() -> Keyboard {
-        Keyboard {
+impl Default for Keyboard {
+    fn default() -> Self {
+        Self {
             controller: KeyboardBuilder::default().build(),
         }
     }

@@ -1,6 +1,7 @@
 use std::{sync::{Arc, Weak}, hash::Hash};
 
 use bevy::utils::HashMap;
+use rand::{rngs::ThreadRng, Rng};
 
 pub mod keyboard;
 
@@ -42,10 +43,23 @@ pub trait ControllerBuilder<T: Hash + Eq + Clone>: Sized {
     }
 
     fn get_far_neighbors(&self, key: T) -> Option<ControllerNeighbors<T>> {
-        let n = self.get_neighbors_distance_two(key)?;
-        let set = self.get_key_set();
+        let set = self.get_key_set()
+            .iter()
+            .collect::<Vec<_>>();
 
-        Some(n.into_iter().filter(|n| !set.contains(&n.0.upgrade().unwrap())).collect())
+        let n = self
+            .get_neighbors_distance_two(key)?
+            .into_iter()
+            .filter_map(|link| link.0.upgrade())
+            .collect::<Vec<_>>();
+
+        let filtered = set
+            .into_iter()
+            .filter(|node| !n.contains(node))
+            .map(|node| ControllerLink(Arc::downgrade(node)))
+            .collect::<Vec<_>>();
+
+        Some(filtered)
     }
 
     fn build(self) -> Controller<T> {
@@ -60,26 +74,31 @@ pub trait ControllerBuilder<T: Hash + Eq + Clone>: Sized {
             }
 
             if let Some(n) = self.get_neighbors_distance_two(k.clone()) {
-                neighbors_distance_two_map.insert(k.clone(), n.clone());
+                neighbors_distance_two_map.insert(k.clone(), n);
             }
 
             if let Some(n) = self.get_far_neighbors(k.clone()) {
-                neighbors_far_map.insert(k.clone(), n.clone());
+                neighbors_far_map.insert(k.clone(), n);
             }
         });
 
         Controller {
+            keys: self.get_key_set().into(),
             neighbors_map,
             neighbors_distance_two_map,
             neighbors_far_map,
+            rng_thread: rand::thread_rng(),
         }
     }
 }
 
 pub struct Controller<T> {
+    /// keep the keys ref alive
+    pub keys: Vec<Arc<ControllerNode<T>>>,
     neighbors_map: HashMap<T, ControllerNeighbors<T>>,
     neighbors_distance_two_map: HashMap<T, ControllerNeighbors<T>>,
     neighbors_far_map: HashMap<T, ControllerNeighbors<T>>,
+    rng_thread: ThreadRng,
 }
 
 impl<T: Eq + Hash> Controller<T> {
@@ -91,13 +110,18 @@ impl<T: Eq + Hash> Controller<T> {
         self.neighbors_distance_two_map.get(&key)
     }
 
-    pub fn random_far_key(&self, key: T) -> Option<&ControllerLink<T>> {
-        self.neighbors_far_map.get(&key).unwrap().first()
+    pub fn random_far_key(&mut self, key: T) -> Option<&ControllerLink<T>> {
+        let map = self.neighbors_far_map.get(&key).unwrap();
+        let range = 0..map.len();
+        let index = self.rng_thread.gen_range(range);
+
+        map.get(index)
     }
 }
 
 #[derive(Clone)]
 pub struct ControllerLink<T>(Weak<ControllerNode<T>>);
+
 impl<T> From<Arc<ControllerNode<T>>> for ControllerLink<T> {
     fn from(node: Arc<ControllerNode<T>>) -> Self {
         ControllerLink(Arc::downgrade(&node))
@@ -110,11 +134,23 @@ impl<T> PartialEq for ControllerLink<T> {
     }
 }
 
+impl<T> ControllerLink<T> {
+    pub fn node(&self) -> Option<Arc<ControllerNode<T>>> {
+        self.0.upgrade()
+    }
+}
+
 #[derive(Clone, PartialEq)]
 pub struct ControllerNode<T>(T);
 impl<T> ControllerNode<T> {
     pub fn new(node: T) -> Arc<Self> {
         Arc::new(Self(node))
+    }
+}
+
+impl<T: Clone> ControllerNode<T> {
+    pub fn value(&self) -> T {
+        self.0.clone()
     }
 }
 
@@ -129,11 +165,5 @@ impl<T> ControllerConnectedNode<T> {
             node,
             neighbors,
         }
-    }
-}
-
-impl<T> Default for ControllerConnectedNode<T> where T: Default {
-    fn default() -> Self {
-        todo!()
     }
 }
