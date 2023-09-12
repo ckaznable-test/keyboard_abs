@@ -11,13 +11,13 @@ pub trait ControllerBuilder<T: Hash + Eq + Clone>: Sized {
     fn get_controller_map(&self) -> &HashMap<T, ControllerConnectedNode<T>>;
     fn get_key_set(&self) -> &[Arc<ControllerNode<T>>];
 
-    fn get_neighbors(&self, key: T) -> Option<&ControllerNeighbors<T>> {
+    fn get_neighbors(&self, key: &T) -> Option<&ControllerNeighbors<T>> {
         let map = self.get_controller_map();
-        let node = map.get(&key)?;
+        let node = map.get(key)?;
         Some(&node.neighbors)
     }
 
-    fn get_neighbors_distance_two(&self, key: T) -> Option<ControllerNeighbors<T>> {
+    fn get_neighbors_distance_two(&self, key: &T) -> Option<ControllerNeighbors<T>> {
         let map = self.get_controller_map();
         let neighbors = self.get_neighbors(key)?;
         let neighbors = neighbors
@@ -42,7 +42,7 @@ pub trait ControllerBuilder<T: Hash + Eq + Clone>: Sized {
         Some(neighbors)
     }
 
-    fn get_far_neighbors(&self, key: T) -> Option<ControllerNeighbors<T>> {
+    fn get_far_neighbors(&self, key: &T) -> Option<ControllerNeighbors<T>> {
         let set = self
             .get_key_set()
             .iter()
@@ -70,15 +70,15 @@ pub trait ControllerBuilder<T: Hash + Eq + Clone>: Sized {
         let mut neighbors_far_map = HashMap::<T, ControllerNeighbors<T>>::new();
 
         map.keys().for_each(|k| {
-            if let Some(n) = self.get_neighbors(k.clone()) {
+            if let Some(n) = self.get_neighbors(k) {
                 neighbors_map.insert(k.clone(), n.clone());
             }
 
-            if let Some(n) = self.get_neighbors_distance_two(k.clone()) {
+            if let Some(n) = self.get_neighbors_distance_two(k) {
                 neighbors_distance_two_map.insert(k.clone(), n);
             }
 
-            if let Some(n) = self.get_far_neighbors(k.clone()) {
+            if let Some(n) = self.get_far_neighbors(k) {
                 neighbors_far_map.insert(k.clone(), n);
             }
         });
@@ -103,16 +103,16 @@ pub struct Controller<T> {
 }
 
 impl<T: Eq + Hash> Controller<T> {
-    pub fn key_neighbors(&self, key: T) -> Option<&ControllerNeighbors<T>> {
-        self.neighbors_map.get(&key)
+    pub fn key_neighbors(&self, key: &T) -> Option<&ControllerNeighbors<T>> {
+        self.neighbors_map.get(key)
     }
 
-    pub fn key_neighbors_distance_two(&self, key: T) -> Option<&ControllerNeighbors<T>> {
-        self.neighbors_distance_two_map.get(&key)
+    pub fn key_neighbors_distance_two(&self, key: &T) -> Option<&ControllerNeighbors<T>> {
+        self.neighbors_distance_two_map.get(key)
     }
 
-    pub fn random_far_key(&mut self, key: T) -> Option<&ControllerLink<T>> {
-        let map = self.neighbors_far_map.get(&key).unwrap();
+    pub fn random_far_key(&mut self, key: &T) -> Option<&ControllerLink<T>> {
+        let map = self.neighbors_far_map.get(key).unwrap();
         let range = 0..map.len();
         let index = self.rng_thread.gen_range(range);
 

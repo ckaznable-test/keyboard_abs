@@ -13,7 +13,7 @@ fn main() {
         let ch = input.trim().chars().next();
 
         if let Some(c) = ch {
-            let link = keyboard.controller.random_far_key(get_char_keycode(c)).unwrap();
+            let link = keyboard.controller.random_far_key(&get_char_keycode(c)).unwrap();
             if let Some(node) = link.node() {
                 println!("{}", get_keycode_char(node.value()));
             }
